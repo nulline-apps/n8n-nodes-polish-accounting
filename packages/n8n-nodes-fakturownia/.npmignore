@@ -1,0 +1,9 @@
+node_modules/
+src/
+tsconfig.json
+jest.config.*
+.eslintrc.*
+gulpfile.*
+coverage/
+*.tgz
+.env
