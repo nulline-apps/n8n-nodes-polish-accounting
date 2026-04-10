@@ -76,6 +76,7 @@ export class Fakturownia implements INodeType {
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description: 'Interact with Fakturownia Polish invoicing software via MCP server',
 		defaults: { name: 'Fakturownia' },
+		usableAsTool: true,
 		inputs: ['main'],
 		outputs: ['main'],
 		credentials: [{ name: 'fakturowniaApi', required: true }],

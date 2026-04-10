@@ -96,6 +96,7 @@ export class Wfirma implements INodeType {
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description: 'Interact with wFirma Polish accounting software via MCP server',
 		defaults: { name: 'wFirma' },
+		usableAsTool: true,
 		inputs: ['main'],
 		outputs: ['main'],
 		credentials: [{ name: 'wfirmaApi', required: true }],

@@ -78,6 +78,28 @@ Configure the **Fakturownia API** credential in n8n:
 - **Expenses Report** — Expenses report
 - **Warehouse Report** — Warehouse analytics report
 
+## AI Agent Integration
+
+This node can be used as a **tool for the AI Agent** node in n8n. The AI Agent can automatically invoke Fakturownia operations (search invoices, create contractors, generate reports, etc.) based on natural language instructions.
+
+### Option 1: Use as AI Agent Tool (recommended)
+
+Simply add the **Fakturownia** node as a tool in your AI Agent configuration. The node has `usableAsTool` enabled, so it appears in the tool list automatically.
+
+### Option 2: Connect via MCP Client
+
+Since this node communicates with an MCP server, you can also use the built-in **MCP Client** node to connect the AI Agent directly to the Fakto MCP server:
+
+1. Add an **MCP Client** tool to your AI Agent node
+2. Set the **SSE URL** to `https://fakto.app/fakturownia/stream`
+3. Add authentication headers with your Fakturownia credentials:
+   ```json
+   {
+     "x-fakturownia-credentials": "{\"token\":\"YOUR_TOKEN\",\"subdomain\":\"YOUR_SUBDOMAIN\",\"subscriptionApiKey\":\"YOUR_KEY\"}"
+   }
+   ```
+4. The AI Agent will automatically discover all 37 available tools from the MCP server
+
 ## Compatibility
 
 Tested with n8n v1.0.0 and later. Requires Node.js 22+.
