@@ -1,0 +1,15 @@
+{
+  "name": "n8n-nodes-polish-accounting",
+  "private": true,
+  "workspaces": [
+    "packages/n8n-nodes-wfirma",
+    "packages/n8n-nodes-fakturownia"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "lint": "npm run lint --workspaces",
+    "lintfix": "npm run lintfix --workspaces",
+    "test": "npm run test --workspaces",
+    "dev": "npm run dev --workspaces"
+  }
+}

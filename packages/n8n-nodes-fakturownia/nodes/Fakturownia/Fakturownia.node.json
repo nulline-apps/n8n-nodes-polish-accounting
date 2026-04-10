@@ -1,0 +1,22 @@
+{
+	"node": "n8n-nodes-fakturownia.fakturownia",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Finance & Accounting"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/your-org/n8n-nodes-fakturownia"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/your-org/n8n-nodes-fakturownia"
+			}
+		]
+	},
+	"alias": ["fakturownia", "invoicing", "faktura", "invoice", "polish invoicing"],
+	"subcategories": {
+		"Finance & Accounting": ["Invoicing"]
+	}
+}

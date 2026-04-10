@@ -1,0 +1,135 @@
+import type { INodeProperties } from 'n8n-workflow';
+
+export const contractorOperations: INodeProperties[] = [
+	{
+		displayName: 'Operation',
+		name: 'operation',
+		type: 'options',
+		noDataExpression: true,
+		displayOptions: { show: { resource: ['contractor'] } },
+		options: [
+			{ name: 'Create', value: 'create', description: 'Create a new contractor', action: 'Create a contractor' },
+			{ name: 'Create With XML', value: 'createXml', description: 'Create contractor with full XML data', action: 'Create a contractor with XML' },
+			{ name: 'Get Many', value: 'getMany', description: 'Get many contractors with filters', action: 'Get many contractors' },
+		],
+		default: 'getMany',
+	},
+];
+
+export const contractorFields: INodeProperties[] = [
+	// --- Create ---
+	{
+		displayName: 'Name',
+		name: 'name',
+		type: 'string',
+		required: true,
+		default: '',
+		displayOptions: { show: { resource: ['contractor'], operation: ['create', 'createXml'] } },
+		description: 'Contractor name',
+	},
+	{
+		displayName: 'NIP (Tax ID)',
+		name: 'nip',
+		type: 'string',
+		default: '',
+		displayOptions: { show: { resource: ['contractor'], operation: ['create'] } },
+		description: 'Contractor tax identification number (10 digits)',
+	},
+	{
+		displayName: 'Additional Fields',
+		name: 'additionalFields',
+		type: 'collection',
+		placeholder: 'Add Field',
+		default: {},
+		displayOptions: { show: { resource: ['contractor'], operation: ['create'] } },
+		options: [
+			{ displayName: 'Address', name: 'address', type: 'string', default: '', description: 'Contractor address' },
+			{ displayName: 'Email', name: 'email', type: 'string', default: '', description: 'Contractor email' },
+			{ displayName: 'Phone', name: 'phone', type: 'string', default: '', description: 'Contractor phone' },
+		],
+	},
+	// --- Create XML ---
+	{
+		displayName: 'NIP (Tax ID)',
+		name: 'nip',
+		type: 'string',
+		required: true,
+		default: '',
+		displayOptions: { show: { resource: ['contractor'], operation: ['createXml'] } },
+		description: 'Contractor NIP (10 digits, required for XML creation)',
+	},
+	{
+		displayName: 'Street',
+		name: 'street',
+		type: 'string',
+		required: true,
+		default: '',
+		displayOptions: { show: { resource: ['contractor'], operation: ['createXml'] } },
+		description: 'Street address',
+	},
+	{
+		displayName: 'ZIP Code',
+		name: 'zip',
+		type: 'string',
+		required: true,
+		default: '',
+		displayOptions: { show: { resource: ['contractor'], operation: ['createXml'] } },
+		description: 'Postal code',
+	},
+	{
+		displayName: 'City',
+		name: 'city',
+		type: 'string',
+		required: true,
+		default: '',
+		displayOptions: { show: { resource: ['contractor'], operation: ['createXml'] } },
+		description: 'City',
+	},
+	{
+		displayName: 'Country',
+		name: 'country',
+		type: 'string',
+		default: 'PL',
+		displayOptions: { show: { resource: ['contractor'], operation: ['createXml'] } },
+		description: 'Country code (default: PL)',
+	},
+	{
+		displayName: 'Additional Fields',
+		name: 'additionalFields',
+		type: 'collection',
+		placeholder: 'Add Field',
+		default: {},
+		displayOptions: { show: { resource: ['contractor'], operation: ['createXml'] } },
+		options: [
+			{ displayName: 'Email', name: 'email', type: 'string', default: '', description: 'Contractor email' },
+			{ displayName: 'Phone', name: 'phone', type: 'string', default: '', description: 'Contractor phone' },
+			{ displayName: 'REGON', name: 'regon', type: 'string', default: '', description: 'REGON number' },
+			{ displayName: 'URL', name: 'url', type: 'string', default: '', description: 'Website URL' },
+			{ displayName: 'Description', name: 'description', type: 'string', default: '', description: 'Notes about contractor' },
+		],
+	},
+	// --- Get Many ---
+	{
+		displayName: 'Limit',
+		name: 'limit',
+		type: 'number',
+		typeOptions: { minValue: 1, maxValue: 100 },
+		default: 50,
+		displayOptions: { show: { resource: ['contractor'], operation: ['getMany'] } },
+		description: 'Max number of results to return',
+	},
+	{
+		displayName: 'Additional Fields',
+		name: 'additionalFields',
+		type: 'collection',
+		placeholder: 'Add Field',
+		default: {},
+		displayOptions: { show: { resource: ['contractor'], operation: ['getMany'] } },
+		options: [
+			{ displayName: 'City', name: 'city', type: 'string', default: '', description: 'Filter by city (partial match)' },
+			{ displayName: 'Name', name: 'name', type: 'string', default: '', description: 'Filter by name (partial match)' },
+			{ displayName: 'NIP', name: 'nip', type: 'string', default: '', description: 'Filter by NIP (tax ID)' },
+			{ displayName: 'Offset', name: 'offset', type: 'number', default: 0, description: 'Number of results to skip' },
+		],
+	},
+];

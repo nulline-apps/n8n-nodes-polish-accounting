@@ -1,0 +1,10 @@
+export { invoiceOperations, invoiceFields } from './InvoiceDescription';
+export { contractorOperations, contractorFields } from './ContractorDescription';
+export { expenseOperations, expenseFields } from './ExpenseDescription';
+export { paymentOperations, paymentFields } from './PaymentDescription';
+export { productOperations, productFields } from './ProductDescription';
+export { warehouseOperations, warehouseFields } from './WarehouseDescription';
+export { analyticsOperations, analyticsFields } from './AnalyticsDescription';
+export { predictionOperations, predictionFields } from './PredictionDescription';
+export { automationOperations, automationFields } from './AutomationDescription';
+export { taxOperations, taxFields } from './TaxDescription';
