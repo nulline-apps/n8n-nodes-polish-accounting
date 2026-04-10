@@ -1,4 +1,4 @@
-name: Publish n8n-nodes-wfirma
+name: Publish n8n-nodes-faktoapp-wfirma
 
 on:
   push:
@@ -12,9 +12,6 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/n8n-nodes-wfirma
     steps:
       - uses: actions/checkout@v4
 
@@ -28,14 +25,16 @@ jobs:
 
       - name: Lint
         run: npm run lint
+        working-directory: packages/n8n-nodes-wfirma
 
       - name: Build
         run: npm run build
+        working-directory: packages/n8n-nodes-wfirma
 
       - name: Test
         run: npm test
+        working-directory: packages/n8n-nodes-wfirma
 
       - name: Publish with provenance
         run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: packages/n8n-nodes-wfirma

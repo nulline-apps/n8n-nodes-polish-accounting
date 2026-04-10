@@ -1,5 +1,5 @@
 {
-	"node": "n8n-nodes-fakturownia.fakturownia",
+	"node": "n8n-nodes-faktoapp-fakturownia.fakturownia",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": ["Finance & Accounting"],

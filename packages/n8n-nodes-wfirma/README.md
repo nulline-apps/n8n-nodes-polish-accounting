@@ -1,4 +1,4 @@
-# n8n-nodes-wfirma
+# n8n-nodes-faktoapp-wfirma
 
 This is an n8n community node for **wFirma** — a popular Polish accounting and invoicing software. It connects to the wFirma API through the [Fakto MCP server](https://fakto.app).
 
@@ -15,7 +15,7 @@ This is an n8n community node for **wFirma** — a popular Polish accounting and
 Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
 
 ```
-npm install n8n-nodes-wfirma
+npm install n8n-nodes-faktoapp-wfirma
 ```
 
 ## Credentials

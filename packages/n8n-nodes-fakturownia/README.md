@@ -1,4 +1,4 @@
-# n8n-nodes-fakturownia
+# n8n-nodes-faktoapp-fakturownia
 
 This is an n8n community node for **Fakturownia** — a popular Polish online invoicing platform. It connects to the Fakturownia API through the [Fakto MCP server](https://fakto.app).
 
@@ -15,7 +15,7 @@ This is an n8n community node for **Fakturownia** — a popular Polish online in
 Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n community nodes documentation.
 
 ```
-npm install n8n-nodes-fakturownia
+npm install n8n-nodes-faktoapp-fakturownia
 ```
 
 ## Credentials

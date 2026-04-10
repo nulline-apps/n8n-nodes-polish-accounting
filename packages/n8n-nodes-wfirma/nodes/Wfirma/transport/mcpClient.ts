@@ -1,4 +1,5 @@
 import type {
+	IDataObject,
 	IExecuteFunctions,
 	IHttpRequestMethods,
 	IHttpRequestOptions,
@@ -78,15 +79,15 @@ export async function callMcpTool(
 	return response.result;
 }
 
-export function parseToolResult(result: McpToolResult): Record<string, unknown> | Record<string, unknown>[] {
+export function parseToolResult(result: McpToolResult): IDataObject | IDataObject[] {
 	const text = result.content
 		.filter((c) => c.type === 'text')
 		.map((c) => c.text)
 		.join('');
 
 	try {
-		return JSON.parse(text) as Record<string, unknown> | Record<string, unknown>[];
+		return JSON.parse(text) as IDataObject | IDataObject[];
 	} catch {
-		return { rawText: text };
+		return { rawText: text } as IDataObject;
 	}
 }

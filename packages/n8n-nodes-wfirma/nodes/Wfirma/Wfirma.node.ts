@@ -1,4 +1,5 @@
 import type {
+	IDataObject,
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeType,
@@ -169,9 +170,8 @@ export class Wfirma implements INodeType {
 	}
 }
 
-function buildArgs(this: IExecuteFunctions, resource: string, operation: string, i: number): Record<string, unknown> {
-	const args: Record<string, unknown> = {};
-	const additional = safeGetParam<Record<string, unknown>>(this, 'additionalFields', i, {});
+function buildArgs(this: IExecuteFunctions, resource: string, operation: string, i: number): IDataObject {
+	const additional = safeGetParam<IDataObject>(this, 'additionalFields', i, {});
 
 	switch (resource) {
 		case 'invoice':
@@ -195,7 +195,7 @@ function buildArgs(this: IExecuteFunctions, resource: string, operation: string,
 		case 'tax':
 			return buildTaxArgs.call(this, operation, i, additional);
 		default:
-			return args;
+			return {};
 	}
 }
 
@@ -203,7 +203,7 @@ function safeGetParam<T>(ef: IExecuteFunctions, name: string, idx: number, fallb
 	try { return ef.getNodeParameter(name, idx) as T; } catch { return fallback; }
 }
 
-function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
+function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	switch (op) {
 		case 'get': case 'downloadPdf':
 			return { [op === 'downloadPdf' ? 'invoice_id' : 'id']: this.getNodeParameter('invoiceId', i) };
@@ -214,7 +214,7 @@ function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra:
 		case 'getByContractorId':
 			return { contractor_id: this.getNodeParameter('contractorId', i), limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		case 'create': {
-			const args: Record<string, unknown> = {
+			const args: IDataObject = {
 				contractor_id: this.getNodeParameter('contractorId', i),
 				items: JSON.parse(this.getNodeParameter('items', i) as string),
 			};
@@ -231,7 +231,7 @@ function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra:
 	}
 }
 
-function buildContractorArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
+function buildContractorArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	switch (op) {
 		case 'create':
 			return { name: this.getNodeParameter('name', i), nip: safeGetParam(this, 'nip', i, ''), ...cleanObj(extra) };
@@ -249,30 +249,30 @@ function buildContractorArgs(this: IExecuteFunctions, op: string, i: number, ext
 	}
 }
 
-function buildExpenseArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
+function buildExpenseArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	if (op === 'get') return { id: this.getNodeParameter('expenseId', i) };
 	return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 }
 
-function buildPaymentArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
+function buildPaymentArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	if (op === 'getDetails') return { payment_id: this.getNodeParameter('paymentId', i) };
 	if (op === 'getDetailsByObject') return { object_id: this.getNodeParameter('objectId', i) };
 	return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 }
 
-function buildProductArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
+function buildProductArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	if (op === 'get') return { id: this.getNodeParameter('productId', i) };
 	if (op === 'create') return { name: this.getNodeParameter('name', i), ...cleanObj(extra) };
 	return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 }
 
-function buildWarehouseArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
+function buildWarehouseArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	if (op === 'getStock') return cleanObj(extra);
 	return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 }
 
-function buildAnalyticsArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
-	const args: Record<string, unknown> = {};
+function buildAnalyticsArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
+	const args: IDataObject = {};
 	const dateFrom = safeGetParam(this, 'dateFrom', i, '');
 	const dateTo = safeGetParam(this, 'dateTo', i, '');
 	if (dateFrom) args.date_from = dateFrom;
@@ -288,20 +288,20 @@ function buildAnalyticsArgs(this: IExecuteFunctions, op: string, i: number, extr
 	return args;
 }
 
-function buildPredictionArgs(this: IExecuteFunctions, op: string, i: number): Record<string, unknown> {
+function buildPredictionArgs(this: IExecuteFunctions, op: string, i: number): IDataObject {
 	if (op === 'cashflow' || op === 'sales') {
 		return { months: safeGetParam(this, 'months', i, 6) };
 	}
 	return {};
 }
 
-function buildAutomationArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
+function buildAutomationArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	if (op === 'paymentReminders') return cleanObj(extra);
 	return {};
 }
 
-function buildTaxArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
-	const args: Record<string, unknown> = { year: this.getNodeParameter('year', i) };
+function buildTaxArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
+	const args: IDataObject = { year: this.getNodeParameter('year', i) as number };
 	if (op === 'compareMonthly') {
 		args.months = JSON.parse(this.getNodeParameter('months', i) as string);
 	} else {
@@ -310,8 +310,8 @@ function buildTaxArgs(this: IExecuteFunctions, op: string, i: number, extra: Rec
 	return { ...args, ...cleanObj(extra) };
 }
 
-function cleanObj(obj: Record<string, unknown>): Record<string, unknown> {
-	const result: Record<string, unknown> = {};
+function cleanObj(obj: IDataObject): IDataObject {
+	const result: IDataObject = {};
 	for (const [key, value] of Object.entries(obj)) {
 		if (value !== '' && value !== undefined && value !== null && value !== 0) {
 			result[key] = value;

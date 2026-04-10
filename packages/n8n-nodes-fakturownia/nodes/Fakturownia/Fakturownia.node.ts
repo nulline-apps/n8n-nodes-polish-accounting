@@ -1,4 +1,5 @@
 import type {
+	IDataObject,
 	IExecuteFunctions,
 	INodeExecutionData,
 	INodeType,
@@ -139,8 +140,8 @@ export class Fakturownia implements INodeType {
 	}
 }
 
-function buildArgs(this: IExecuteFunctions, resource: string, operation: string, i: number): Record<string, unknown> {
-	const additional = safeGetParam<Record<string, unknown>>(this, 'additionalFields', i, {});
+function buildArgs(this: IExecuteFunctions, resource: string, operation: string, i: number): IDataObject {
+	const additional = safeGetParam<IDataObject>(this, 'additionalFields', i, {});
 
 	switch (resource) {
 		case 'invoice':
@@ -162,7 +163,7 @@ function safeGetParam<T>(ef: IExecuteFunctions, name: string, idx: number, fallb
 	try { return ef.getNodeParameter(name, idx) as T; } catch { return fallback; }
 }
 
-function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
+function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	switch (op) {
 		case 'get': case 'downloadPdf':
 			return { id: this.getNodeParameter('invoiceId', i) };
@@ -175,9 +176,9 @@ function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra:
 		case 'search':
 			return { query: this.getNodeParameter('query', i), limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		case 'create':
-			return JSON.parse(this.getNodeParameter('createData', i) as string) as Record<string, unknown>;
+			return JSON.parse(this.getNodeParameter('createData', i) as string) as IDataObject;
 		case 'update':
-			return { id: this.getNodeParameter('invoiceId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as Record<string, unknown> };
+			return { id: this.getNodeParameter('invoiceId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as IDataObject };
 		case 'getMany':
 			return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		default:
@@ -185,7 +186,7 @@ function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra:
 	}
 }
 
-function buildContractorArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
+function buildContractorArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	switch (op) {
 		case 'get':
 			return { id: this.getNodeParameter('contractorId', i) };
@@ -196,7 +197,7 @@ function buildContractorArgs(this: IExecuteFunctions, op: string, i: number, ext
 		case 'create':
 			return { name: this.getNodeParameter('name', i), ...cleanObj(extra) };
 		case 'update':
-			return { id: this.getNodeParameter('contractorId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as Record<string, unknown> };
+			return { id: this.getNodeParameter('contractorId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as IDataObject };
 		case 'getMany':
 			return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		default:
@@ -204,7 +205,7 @@ function buildContractorArgs(this: IExecuteFunctions, op: string, i: number, ext
 	}
 }
 
-function buildProductArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
+function buildProductArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	switch (op) {
 		case 'get': case 'delete':
 			return { id: this.getNodeParameter('productId', i) };
@@ -215,7 +216,7 @@ function buildProductArgs(this: IExecuteFunctions, op: string, i: number, extra:
 		case 'create':
 			return { name: this.getNodeParameter('name', i), ...cleanObj(extra) };
 		case 'update':
-			return { id: this.getNodeParameter('productId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as Record<string, unknown> };
+			return { id: this.getNodeParameter('productId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as IDataObject };
 		case 'getMany':
 			return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		default:
@@ -223,14 +224,14 @@ function buildProductArgs(this: IExecuteFunctions, op: string, i: number, extra:
 	}
 }
 
-function buildWarehouseArgs(this: IExecuteFunctions, op: string, i: number, extra: Record<string, unknown>): Record<string, unknown> {
+function buildWarehouseArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	switch (op) {
 		case 'getDocument': case 'deleteDocument':
 			return { id: this.getNodeParameter('documentId', i) };
 		case 'createIn': case 'createOut': case 'createInternal':
-			return JSON.parse(this.getNodeParameter('documentData', i) as string) as Record<string, unknown>;
+			return JSON.parse(this.getNodeParameter('documentData', i) as string) as IDataObject;
 		case 'updateDocument':
-			return { id: this.getNodeParameter('documentId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as Record<string, unknown> };
+			return { id: this.getNodeParameter('documentId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as IDataObject };
 		case 'getDocuments': case 'getWarehouses':
 			return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		case 'getStock':
@@ -240,8 +241,8 @@ function buildWarehouseArgs(this: IExecuteFunctions, op: string, i: number, extr
 	}
 }
 
-function buildAnalyticsArgs(this: IExecuteFunctions, op: string, i: number): Record<string, unknown> {
-	const args: Record<string, unknown> = {};
+function buildAnalyticsArgs(this: IExecuteFunctions, op: string, i: number): IDataObject {
+	const args: IDataObject = {};
 	const dateFrom = safeGetParam(this, 'dateFrom', i, '');
 	const dateTo = safeGetParam(this, 'dateTo', i, '');
 	if (dateFrom) args.date_from = dateFrom;
@@ -252,8 +253,8 @@ function buildAnalyticsArgs(this: IExecuteFunctions, op: string, i: number): Rec
 	return args;
 }
 
-function cleanObj(obj: Record<string, unknown>): Record<string, unknown> {
-	const result: Record<string, unknown> = {};
+function cleanObj(obj: IDataObject): IDataObject {
+	const result: IDataObject = {};
 	for (const [key, value] of Object.entries(obj)) {
 		if (value !== '' && value !== undefined && value !== null && value !== 0) {
 			result[key] = value;
