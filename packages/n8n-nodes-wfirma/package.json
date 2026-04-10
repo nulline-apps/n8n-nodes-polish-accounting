@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-faktoapp-wfirma",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "n8n community node for wFirma Polish accounting software via MCP server",
   "keywords": [
     "n8n-community-node-package"

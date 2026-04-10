@@ -34,6 +34,9 @@ const TOOL_MAP: Record<string, Record<string, string>> = {
 	},
 	contractor: {
 		getMany: 'get_contractors',
+		get: 'get_contractor',
+		getByTaxNo: 'get_contractor_by_tax_no',
+		search: 'search_contractors',
 		create: 'create_contractor',
 		createXml: 'create_contractor_with_xml',
 	},
@@ -234,6 +237,12 @@ function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra:
 
 function buildContractorArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	switch (op) {
+		case 'get':
+			return { id: this.getNodeParameter('contractorId', i) };
+		case 'getByTaxNo':
+			return { nip: this.getNodeParameter('nip', i) };
+		case 'search':
+			return { query: this.getNodeParameter('query', i), limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		case 'create':
 			return { name: this.getNodeParameter('name', i), nip: safeGetParam(this, 'nip', i, ''), ...cleanObj(extra) };
 		case 'createXml':
