@@ -86,7 +86,11 @@ export function parseToolResult(result: McpToolResult): IDataObject | IDataObjec
 		.join('');
 
 	try {
-		return JSON.parse(text) as IDataObject | IDataObject[];
+		const parsed = JSON.parse(text);
+		if (parsed === null || parsed === undefined) {
+			return {} as IDataObject;
+		}
+		return parsed as IDataObject | IDataObject[];
 	} catch {
 		return { rawText: text } as IDataObject;
 	}

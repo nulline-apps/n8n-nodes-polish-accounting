@@ -93,5 +93,12 @@ describe('mcpClient (Fakturownia)', () => {
 			};
 			expect(parseToolResult(result)).toEqual({ rawText: 'plain text' });
 		});
+
+		it('should return empty object when MCP tool returns null', () => {
+			const result: McpToolResult = {
+				content: [{ type: 'text', text: 'null' }],
+			};
+			expect(parseToolResult(result)).toEqual({});
+		});
 	});
 });

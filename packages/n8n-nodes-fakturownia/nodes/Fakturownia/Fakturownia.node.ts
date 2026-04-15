@@ -31,7 +31,7 @@ export const TOOL_MAP: Record<string, Record<string, string>> = {
 	contractor: {
 		getMany: 'get_contractors',
 		get: 'get_contractor',
-		getByTaxNo: 'get_contractor_by_tax_no',
+		getByTaxNo: 'get_contractors',
 		search: 'search_contractors',
 		create: 'create_contractor',
 		update: 'update_contractor',
@@ -123,10 +123,10 @@ export class Fakturownia implements INodeType {
 
 			if (Array.isArray(parsed)) {
 				for (const item of parsed) {
-					returnData.push({ json: item, pairedItem: { item: i } });
+					returnData.push({ json: item ?? {}, pairedItem: { item: i } });
 				}
 			} else {
-				returnData.push({ json: parsed, pairedItem: { item: i } });
+				returnData.push({ json: parsed ?? {}, pairedItem: { item: i } });
 			}
 			} catch (error) {
 				if (this.continueOnFail()) {
@@ -197,7 +197,7 @@ function buildContractorArgs(this: IExecuteFunctions, op: string, i: number, ext
 		case 'get':
 			return { id: this.getNodeParameter('contractorId', i) };
 		case 'getByTaxNo':
-			return { tax_no: this.getNodeParameter('taxNo', i) };
+			return { tax_no: this.getNodeParameter('taxNo', i), limit: 1 };
 		case 'search':
 			return { query: this.getNodeParameter('query', i), limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		case 'create':
