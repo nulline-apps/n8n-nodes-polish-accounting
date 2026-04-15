@@ -16,7 +16,7 @@ import {
 	analyticsOperations, analyticsFields,
 } from './descriptions';
 
-const TOOL_MAP: Record<string, Record<string, string>> = {
+export const TOOL_MAP: Record<string, Record<string, string>> = {
 	invoice: {
 		getMany: 'get_invoices',
 		get: 'get_invoice',
@@ -121,13 +121,13 @@ export class Fakturownia implements INodeType {
 				const result = await callMcpTool(this, toolName, args, i);
 				const parsed = parseToolResult(result);
 
-				if (Array.isArray(parsed)) {
-					for (const item of parsed) {
-						returnData.push({ json: item });
-					}
-				} else {
-					returnData.push({ json: parsed });
+			if (Array.isArray(parsed)) {
+				for (const item of parsed) {
+					returnData.push({ json: item, pairedItem: { item: i } });
 				}
+			} else {
+				returnData.push({ json: parsed, pairedItem: { item: i } });
+			}
 			} catch (error) {
 				if (this.continueOnFail()) {
 					returnData.push({ json: { error: (error as Error).message }, pairedItem: { item: i } });
@@ -161,7 +161,12 @@ function buildArgs(this: IExecuteFunctions, resource: string, operation: string,
 }
 
 function safeGetParam<T>(ef: IExecuteFunctions, name: string, idx: number, fallback: T): T {
-	try { return ef.getNodeParameter(name, idx) as T; } catch { return fallback; }
+	return ef.getNodeParameter(name, idx, fallback) as T;
+}
+
+function safeJsonParse(ef: IExecuteFunctions, value: string, field: string, i: number): IDataObject {
+	try { return JSON.parse(value) as IDataObject; }
+	catch { throw new NodeOperationError(ef.getNode(), `Invalid JSON in "${field}"`, { itemIndex: i }); }
 }
 
 function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
@@ -177,9 +182,9 @@ function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra:
 		case 'search':
 			return { query: this.getNodeParameter('query', i), limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		case 'create':
-			return JSON.parse(this.getNodeParameter('createData', i) as string) as IDataObject;
+			return safeJsonParse(this, this.getNodeParameter('createData', i) as string, 'createData', i);
 		case 'update':
-			return { id: this.getNodeParameter('invoiceId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as IDataObject };
+			return { id: this.getNodeParameter('invoiceId', i), ...safeJsonParse(this, this.getNodeParameter('updateData', i) as string, 'updateData', i) };
 		case 'getMany':
 			return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		default:
@@ -198,7 +203,7 @@ function buildContractorArgs(this: IExecuteFunctions, op: string, i: number, ext
 		case 'create':
 			return { name: this.getNodeParameter('name', i), ...cleanObj(extra) };
 		case 'update':
-			return { id: this.getNodeParameter('contractorId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as IDataObject };
+			return { id: this.getNodeParameter('contractorId', i), ...safeJsonParse(this, this.getNodeParameter('updateData', i) as string, 'updateData', i) };
 		case 'getMany':
 			return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		default:
@@ -217,7 +222,7 @@ function buildProductArgs(this: IExecuteFunctions, op: string, i: number, extra:
 		case 'create':
 			return { name: this.getNodeParameter('name', i), ...cleanObj(extra) };
 		case 'update':
-			return { id: this.getNodeParameter('productId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as IDataObject };
+			return { id: this.getNodeParameter('productId', i), ...safeJsonParse(this, this.getNodeParameter('updateData', i) as string, 'updateData', i) };
 		case 'getMany':
 			return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		default:
@@ -230,9 +235,9 @@ function buildWarehouseArgs(this: IExecuteFunctions, op: string, i: number, extr
 		case 'getDocument': case 'deleteDocument':
 			return { id: this.getNodeParameter('documentId', i) };
 		case 'createIn': case 'createOut': case 'createInternal':
-			return JSON.parse(this.getNodeParameter('documentData', i) as string) as IDataObject;
+			return safeJsonParse(this, this.getNodeParameter('documentData', i) as string, 'documentData', i);
 		case 'updateDocument':
-			return { id: this.getNodeParameter('documentId', i), ...JSON.parse(this.getNodeParameter('updateData', i) as string) as IDataObject };
+			return { id: this.getNodeParameter('documentId', i), ...safeJsonParse(this, this.getNodeParameter('updateData', i) as string, 'updateData', i) };
 		case 'getDocuments': case 'getWarehouses':
 			return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(extra) };
 		case 'getStock':
@@ -254,10 +259,10 @@ function buildAnalyticsArgs(this: IExecuteFunctions, op: string, i: number): IDa
 	return args;
 }
 
-function cleanObj(obj: IDataObject): IDataObject {
+export function cleanObj(obj: IDataObject): IDataObject {
 	const result: IDataObject = {};
 	for (const [key, value] of Object.entries(obj)) {
-		if (value !== '' && value !== undefined && value !== null && value !== 0) {
+		if (value !== '' && value !== undefined && value !== null) {
 			result[key] = value;
 		}
 	}

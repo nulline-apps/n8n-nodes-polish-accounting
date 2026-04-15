@@ -5,3 +5,4 @@ dist/
 *.tgz
 .env
 coverage/
+publish-*.ps1

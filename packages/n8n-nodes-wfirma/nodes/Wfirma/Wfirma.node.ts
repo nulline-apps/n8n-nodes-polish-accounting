@@ -21,7 +21,7 @@ import {
 	taxOperations, taxFields,
 } from './descriptions';
 
-const TOOL_MAP: Record<string, Record<string, string>> = {
+export const TOOL_MAP: Record<string, Record<string, string>> = {
 	invoice: {
 		getMany: 'get_invoices',
 		get: 'get_invoice',
@@ -154,13 +154,13 @@ export class Wfirma implements INodeType {
 				const result = await callMcpTool(this, toolName, args, i);
 				const parsed = parseToolResult(result);
 
-				if (Array.isArray(parsed)) {
-					for (const item of parsed) {
-						returnData.push({ json: item });
-					}
-				} else {
-					returnData.push({ json: parsed });
+			if (Array.isArray(parsed)) {
+				for (const item of parsed) {
+					returnData.push({ json: item, pairedItem: { item: i } });
 				}
+			} else {
+				returnData.push({ json: parsed, pairedItem: { item: i } });
+			}
 			} catch (error) {
 				if (this.continueOnFail()) {
 					returnData.push({ json: { error: (error as Error).message }, pairedItem: { item: i } });
@@ -204,7 +204,12 @@ function buildArgs(this: IExecuteFunctions, resource: string, operation: string,
 }
 
 function safeGetParam<T>(ef: IExecuteFunctions, name: string, idx: number, fallback: T): T {
-	try { return ef.getNodeParameter(name, idx) as T; } catch { return fallback; }
+	return ef.getNodeParameter(name, idx, fallback) as T;
+}
+
+function safeJsonParse(ef: IExecuteFunctions, value: string, field: string, i: number): IDataObject {
+	try { return JSON.parse(value) as IDataObject; }
+	catch { throw new NodeOperationError(ef.getNode(), `Invalid JSON in "${field}"`, { itemIndex: i }); }
 }
 
 function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
@@ -220,7 +225,7 @@ function buildInvoiceArgs(this: IExecuteFunctions, op: string, i: number, extra:
 		case 'create': {
 			const args: IDataObject = {
 				contractor_id: this.getNodeParameter('contractorId', i),
-				items: JSON.parse(this.getNodeParameter('items', i) as string),
+				items: safeJsonParse(this, this.getNodeParameter('items', i) as string, 'items', i),
 			};
 			const pd = safeGetParam(this, 'paymentDate', i, '');
 			if (pd) args.payment_date = pd;
@@ -313,17 +318,17 @@ function buildAutomationArgs(this: IExecuteFunctions, op: string, i: number, ext
 function buildTaxArgs(this: IExecuteFunctions, op: string, i: number, extra: IDataObject): IDataObject {
 	const args: IDataObject = { year: this.getNodeParameter('year', i) as number };
 	if (op === 'compareMonthly') {
-		args.months = JSON.parse(this.getNodeParameter('months', i) as string);
+		args.months = safeJsonParse(this, this.getNodeParameter('months', i) as string, 'months', i);
 	} else {
 		args.month = this.getNodeParameter('month', i);
 	}
 	return { ...args, ...cleanObj(extra) };
 }
 
-function cleanObj(obj: IDataObject): IDataObject {
+export function cleanObj(obj: IDataObject): IDataObject {
 	const result: IDataObject = {};
 	for (const [key, value] of Object.entries(obj)) {
-		if (value !== '' && value !== undefined && value !== null && value !== 0) {
+		if (value !== '' && value !== undefined && value !== null) {
 			result[key] = value;
 		}
 	}

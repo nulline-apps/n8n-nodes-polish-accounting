@@ -6,12 +6,12 @@
 	"resources": {
 		"credentialDocumentation": [
 			{
-				"url": "https://github.com/your-org/n8n-nodes-wfirma"
+				"url": "https://github.com/nulline-apps/n8n-nodes-polish-accounting/tree/main/packages/n8n-nodes-wfirma"
 			}
 		],
 		"primaryDocumentation": [
 			{
-				"url": "https://github.com/your-org/n8n-nodes-wfirma"
+				"url": "https://github.com/nulline-apps/n8n-nodes-polish-accounting/tree/main/packages/n8n-nodes-wfirma"
 			}
 		]
 	},

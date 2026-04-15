@@ -1,4 +1,16 @@
-import { Wfirma } from '../../nodes/Wfirma/Wfirma.node';
+import { Wfirma, TOOL_MAP, cleanObj } from '../../nodes/Wfirma/Wfirma.node';
+
+function getResourceValues(node: Wfirma): string[] {
+	const resourceProp = node.description.properties.find((p) => p.name === 'resource');
+	return (resourceProp as any).options.map((o: any) => o.value);
+}
+
+function getOperationValues(node: Wfirma, resource: string): string[] {
+	const opProp = node.description.properties.find(
+		(p) => p.name === 'operation' && p.displayOptions?.show?.resource?.includes(resource),
+	);
+	return (opProp as any).options.map((o: any) => o.value);
+}
 
 describe('Wfirma Node', () => {
 	let node: Wfirma;
@@ -22,26 +34,18 @@ describe('Wfirma Node', () => {
 		});
 
 		it('should define all 10 resources', () => {
-			const resourceProp = node.description.properties.find(
-				(p) => p.name === 'resource',
-			);
-			expect(resourceProp).toBeDefined();
-			expect(resourceProp?.type).toBe('options');
-
-			const options = (resourceProp as any).options;
-			const resourceValues = options.map((o: any) => o.value);
-
-			expect(resourceValues).toContain('invoice');
-			expect(resourceValues).toContain('contractor');
-			expect(resourceValues).toContain('expense');
-			expect(resourceValues).toContain('payment');
-			expect(resourceValues).toContain('product');
-			expect(resourceValues).toContain('warehouse');
-			expect(resourceValues).toContain('analytics');
-			expect(resourceValues).toContain('prediction');
-			expect(resourceValues).toContain('automation');
-			expect(resourceValues).toContain('tax');
-			expect(options).toHaveLength(10);
+			const resources = getResourceValues(node);
+			expect(resources).toContain('invoice');
+			expect(resources).toContain('contractor');
+			expect(resources).toContain('expense');
+			expect(resources).toContain('payment');
+			expect(resources).toContain('product');
+			expect(resources).toContain('warehouse');
+			expect(resources).toContain('analytics');
+			expect(resources).toContain('prediction');
+			expect(resources).toContain('automation');
+			expect(resources).toContain('tax');
+			expect(resources).toHaveLength(10);
 		});
 
 		it('should have operation properties for each resource', () => {
@@ -52,14 +56,7 @@ describe('Wfirma Node', () => {
 		});
 
 		it('should define invoice operations', () => {
-			const invoiceOps = node.description.properties.find(
-				(p) =>
-					p.name === 'operation' &&
-					p.displayOptions?.show?.resource?.includes('invoice'),
-			);
-			expect(invoiceOps).toBeDefined();
-
-			const opValues = (invoiceOps as any).options.map((o: any) => o.value);
+			const opValues = getOperationValues(node, 'invoice');
 			expect(opValues).toContain('getMany');
 			expect(opValues).toContain('get');
 			expect(opValues).toContain('create');
@@ -67,27 +64,67 @@ describe('Wfirma Node', () => {
 		});
 	});
 
-	describe('TOOL_MAP coverage', () => {
-		it('should map all invoice operations to tool names', () => {
-			const invoiceOps = node.description.properties.find(
-				(p) =>
-					p.name === 'operation' &&
-					p.displayOptions?.show?.resource?.includes('invoice'),
-			);
-			const opValues = (invoiceOps as any).options.map((o: any) => o.value);
-
-			expect(opValues.length).toBe(8);
+	describe('cleanObj', () => {
+		it('should remove empty strings', () => {
+			expect(cleanObj({ a: '', b: 'value' })).toEqual({ b: 'value' });
 		});
 
-		it('should map all tax operations to tool names', () => {
-			const taxOps = node.description.properties.find(
-				(p) =>
-					p.name === 'operation' &&
-					p.displayOptions?.show?.resource?.includes('tax'),
-			);
-			const opValues = (taxOps as any).options.map((o: any) => o.value);
+		it('should remove null and undefined values', () => {
+			expect(cleanObj({ a: null, b: undefined, c: 'value' })).toEqual({ c: 'value' });
+		});
 
-			expect(opValues.length).toBe(6);
+		it('should preserve 0 values', () => {
+			expect(cleanObj({ paid: 0, status: 1 })).toEqual({ paid: 0, status: 1 });
+		});
+
+		it('should preserve false values', () => {
+			expect(cleanObj({ active: false, name: 'test' })).toEqual({ active: false, name: 'test' });
+		});
+
+		it('should return empty object when all values are empty', () => {
+			expect(cleanObj({ a: '', b: null, c: undefined })).toEqual({});
+		});
+
+		it('should pass through object with no empty values unchanged', () => {
+			const input = { a: 'x', b: 42, c: true };
+			expect(cleanObj(input)).toEqual(input);
+		});
+	});
+
+	describe('TOOL_MAP parity with UI descriptions', () => {
+		it('every UI resource should exist in TOOL_MAP', () => {
+			const resources = getResourceValues(node);
+			for (const resource of resources) {
+				expect(TOOL_MAP[resource]).toBeDefined();
+			}
+		});
+
+		it('every UI operation should have a TOOL_MAP entry', () => {
+			const resources = getResourceValues(node);
+			for (const resource of resources) {
+				const operations = getOperationValues(node, resource);
+				for (const op of operations) {
+					expect(TOOL_MAP[resource]?.[op]).toBeDefined();
+				}
+			}
+		});
+
+		it('every TOOL_MAP entry should have a matching UI operation', () => {
+			for (const [resource, ops] of Object.entries(TOOL_MAP)) {
+				const uiOps = getOperationValues(node, resource);
+				for (const op of Object.keys(ops)) {
+					expect(uiOps).toContain(op);
+				}
+			}
+		});
+
+		it('TOOL_MAP values should be non-empty strings', () => {
+			for (const ops of Object.values(TOOL_MAP)) {
+				for (const toolName of Object.values(ops)) {
+					expect(typeof toolName).toBe('string');
+					expect(toolName.length).toBeGreaterThan(0);
+				}
+			}
 		});
 	});
 });

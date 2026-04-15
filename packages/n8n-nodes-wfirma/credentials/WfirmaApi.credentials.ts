@@ -10,7 +10,7 @@ export class WfirmaApi implements ICredentialType {
 
 	displayName = 'wFirma API';
 
-	documentationUrl = 'https://github.com/your-org/n8n-nodes-wfirma';
+	documentationUrl = 'https://github.com/nulline-apps/n8n-nodes-polish-accounting/tree/main/packages/n8n-nodes-wfirma';
 
 	properties: INodeProperties[] = [
 		{

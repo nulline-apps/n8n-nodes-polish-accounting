@@ -10,7 +10,7 @@ export class FakturowniaApi implements ICredentialType {
 
 	displayName = 'Fakturownia API';
 
-	documentationUrl = 'https://github.com/your-org/n8n-nodes-fakturownia';
+	documentationUrl = 'https://github.com/nulline-apps/n8n-nodes-polish-accounting/tree/main/packages/n8n-nodes-fakturownia';
 
 	properties: INodeProperties[] = [
 		{
