@@ -1,6 +1,9 @@
 import type {
+	ICredentialsDecrypted,
+	ICredentialTestFunctions,
 	IDataObject,
 	IExecuteFunctions,
+	INodeCredentialTestResult,
 	INodeExecutionData,
 	INodeType,
 	INodeTypeDescription,
@@ -8,6 +11,7 @@ import type {
 import { NodeOperationError } from 'n8n-workflow';
 
 import { callInvoiceApi } from './transport/restClient';
+import { assertLicense, callDirect, type DirectCredentials } from './transport/fakturowniaDirectClient';
 import { invoiceOperations, invoiceFields } from './descriptions';
 
 // Mapowanie operacji UI -> akcja REST endpointu /fakturownia/invoices/:action
@@ -31,13 +35,13 @@ export class FakturowniaInvoices implements INodeType {
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"]}}',
-		description: 'Handle Fakturownia invoices via the fakto.app REST proxy (API Keys or Bearer token)',
+		description: 'Handle Fakturownia invoices directly (API Keys) or via the fakto.app proxy (Bearer token)',
 		defaults: { name: 'Fakturownia Invoices' },
 		usableAsTool: true,
 		inputs: ['main'],
 		outputs: ['main'],
 		credentials: [
-			{ name: 'fakturowniaApi', required: true, displayOptions: { show: { authentication: ['apiKeys'] } } },
+			{ name: 'fakturowniaDirectApi', required: true, displayOptions: { show: { authentication: ['apiKeys'] } } },
 			{ name: 'fakturowniaBearerApi', required: true, displayOptions: { show: { authentication: ['bearerToken'] } } },
 		],
 		properties: [
@@ -47,8 +51,8 @@ export class FakturowniaInvoices implements INodeType {
 				type: 'options',
 				noDataExpression: true,
 				options: [
-					{ name: 'API Keys', value: 'apiKeys', description: 'Fakturownia token + subdomain + fakto.app subscription key' },
-					{ name: 'Bearer Token', value: 'bearerToken', description: 'Bearer token generated in fakto.app' },
+					{ name: 'API Keys (Direct)', value: 'apiKeys', description: 'Connect directly to Fakturownia; fakto.app subscription key is verified daily as a license' },
+					{ name: 'Bearer Token', value: 'bearerToken', description: 'Bearer token generated in fakto.app (routed through the fakto.app proxy)' },
 				],
 				default: 'apiKeys',
 			},
@@ -57,12 +61,65 @@ export class FakturowniaInvoices implements INodeType {
 		],
 	};
 
+	methods = {
+		credentialTest: {
+			async fakturowniaDirectTest(
+				this: ICredentialTestFunctions,
+				credential: ICredentialsDecrypted,
+			): Promise<INodeCredentialTestResult> {
+				const data = (credential.data ?? {}) as IDataObject;
+				const faktoUrl = String(data.faktoServerUrl || 'https://fakto.app').replace(/\/+$/, '');
+
+				// Krok 1: licencja fakto.app
+				try {
+					const resp = (await this.helpers.request({
+						method: 'POST',
+						uri: `${faktoUrl}/subscription/verify`,
+						headers: { 'x-subscription-key': data.subscriptionApiKey },
+						body: {},
+						json: true,
+					})) as IDataObject;
+					if (resp.active !== true) {
+						return { status: 'Error', message: `Subskrypcja fakto.app nieaktywna (status: ${resp.status ?? 'unknown'}).` };
+					}
+				} catch (error) {
+					const status = (error as IDataObject).statusCode;
+					if (status === 401 || status === 400) {
+						return { status: 'Error', message: 'Klucz subskrypcji fakto.app jest nieprawidłowy lub nieaktywny.' };
+					}
+					return { status: 'Error', message: `Nie można zweryfikować licencji na fakto.app: ${(error as Error).message}` };
+				}
+
+				// Krok 2: połączenie z Fakturownią
+				try {
+					await this.helpers.request({
+						method: 'GET',
+						uri: `https://${data.subdomain}.fakturownia.pl/invoices.json`,
+						qs: { api_token: data.apiToken, per_page: 1 },
+						json: true,
+					});
+				} catch (error) {
+					return { status: 'Error', message: `Połączenie z Fakturownią nie powiodło się (sprawdź subdomenę i token): ${(error as Error).message}` };
+				}
+
+				return { status: 'OK', message: 'Licencja fakto.app aktywna i połączenie z Fakturownią działa.' };
+			},
+		},
+	};
+
 	async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
 		const items = this.getInputData();
 		const returnData: INodeExecutionData[] = [];
 
 		const authentication = this.getNodeParameter('authentication', 0) as string;
-		const credName = authentication === 'bearerToken' ? 'fakturowniaBearerApi' : 'fakturowniaApi';
+		const isDirect = authentication !== 'bearerToken';
+
+		// Tryb Direct: pobierz credential raz i zweryfikuj licencję (gating dobowy) przed pętlą.
+		let directCred: DirectCredentials | undefined;
+		if (isDirect) {
+			directCred = (await this.getCredentials('fakturowniaDirectApi')) as unknown as DirectCredentials;
+			await assertLicense(this, directCred);
+		}
 
 		for (let i = 0; i < items.length; i++) {
 			try {
@@ -73,7 +130,9 @@ export class FakturowniaInvoices implements INodeType {
 				}
 
 				const args = buildArgs.call(this, operation, i);
-				const response = await callInvoiceApi(this, credName, action, args, i);
+				const response = isDirect
+					? await callDirect(this, directCred as DirectCredentials, operation, args, i)
+					: await callInvoiceApi(this, 'fakturowniaBearerApi', action, args, i);
 
 				// PDF: endpoint zwraca { pdf_base64, filename, mime_type } -> wystaw jako binary
 				if (operation === 'downloadPdf' && !Array.isArray(response) && response.pdf_base64) {
@@ -129,7 +188,12 @@ function buildArgs(this: IExecuteFunctions, operation: string, i: number): IData
 		case 'create': {
 			const positions = buildPositions.call(this, i);
 			const buyerMode = this.getNodeParameter('buyerMode', i) as string;
-			const base: IDataObject = { ...cleanObj(additional) };
+			const base: IDataObject = {
+				sell_date: this.getNodeParameter('sell_date', i),
+				issue_date: this.getNodeParameter('issue_date', i),
+				payment_to: this.getNodeParameter('payment_to', i),
+				...cleanObj(additional),
+			};
 			if (buyerMode === 'inline') {
 				base.buyer_name = this.getNodeParameter('buyerName', i);
 			} else {
@@ -155,7 +219,19 @@ function buildArgs(this: IExecuteFunctions, operation: string, i: number): IData
 function buildPositions(this: IExecuteFunctions, i: number): IDataObject[] {
 	const raw = safeGetParam<IDataObject>(this, 'positions', i, {});
 	const list = (raw.position as IDataObject[] | undefined) || [];
-	return list.map((p) => cleanObj(p));
+	return list.map((p) => {
+		const cleaned = cleanObj(p);
+		// id 0 means "no id" -> drop it so Fakturownia adds a new line instead of targeting line 0
+		if (cleaned.id === 0) delete cleaned.id;
+		// only send _destroy when actually removing a line (avoids sending _destroy:false noise)
+		if (cleaned._destroy === false) delete cleaned._destroy;
+		// Treat 0 in price fields as "not provided": lets the server compute totals on create
+		// and prevents partial edits (e.g. quantity-only) from zeroing an existing line's amount.
+		for (const field of ['price_net', 'price_gross', 'total_price_net', 'total_price_gross']) {
+			if (cleaned[field] === 0) delete cleaned[field];
+		}
+		return cleaned;
+	});
 }
 
 function buildRawOverride(this: IExecuteFunctions, i: number): IDataObject {

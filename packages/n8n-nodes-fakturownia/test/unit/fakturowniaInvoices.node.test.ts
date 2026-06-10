@@ -32,7 +32,7 @@ describe('FakturowniaInvoices Node', () => {
 
 		it('should declare both credentials gated by authentication', () => {
 			expect(node.description.credentials).toEqual([
-				{ name: 'fakturowniaApi', required: true, displayOptions: { show: { authentication: ['apiKeys'] } } },
+				{ name: 'fakturowniaDirectApi', required: true, displayOptions: { show: { authentication: ['apiKeys'] } } },
 				{ name: 'fakturowniaBearerApi', required: true, displayOptions: { show: { authentication: ['bearerToken'] } } },
 			]);
 		});
@@ -66,12 +66,13 @@ describe('FakturowniaInvoices Node', () => {
 			expect(positionsForCreate.required).toBe(true);
 		});
 
-		it('should not force dates as required top-level create fields', () => {
+		it('should surface dates as required top-level create fields (validated server-side)', () => {
 			for (const dateField of ['sell_date', 'issue_date', 'payment_to']) {
 				const topLevel = node.description.properties.find(
 					(p) => p.name === dateField && p.displayOptions?.show?.operation?.includes('create'),
-				);
-				expect(topLevel).toBeUndefined();
+				) as any;
+				expect(topLevel).toBeDefined();
+				expect(topLevel.required).toBe(true);
 			}
 		});
 	});

@@ -24,10 +24,32 @@ export const invoiceOperations: INodeProperties[] = [
 	},
 ];
 
-// Wspólne pozycje faktury (fixedCollection) - używane przez create i update.
-// Model danych dopasowany do najbardziej naturalnego wprowadzania: nazwa + ilość +
-// cena jednostkowa netto + VAT. Serwer MCP sam policzy total_price_net/gross,
-// jeśli nie podasz ich jawnie.
+// Wspólne pola jednej pozycji faktury. Model danych dopasowany do najbardziej
+// naturalnego wprowadzania: nazwa + ilość + cena jednostkowa netto + VAT.
+// Serwer MCP sam policzy total_price_net/gross, jeśli nie podasz ich jawnie.
+const positionValueFields: INodeProperties[] = [
+	{ displayName: 'Name', name: 'name', type: 'string', default: '', description: 'Position name' },
+	{ displayName: 'Quantity', name: 'quantity', type: 'number', default: 1, description: 'Quantity' },
+	{ displayName: 'Unit Price Net', name: 'price_net', type: 'number', default: 0, description: 'Net price per unit (totals are computed by the server when not given)' },
+	{
+		displayName: 'VAT Rate', name: 'tax', type: 'options', default: '23',
+		options: [
+			{ name: '23%', value: '23' }, { name: '8%', value: '8' },
+			{ name: '5%', value: '5' }, { name: '0%', value: '0' },
+		],
+		description: 'VAT rate',
+	},
+	{ displayName: 'Total Price Gross', name: 'total_price_gross', type: 'number', default: 0, description: 'Override the gross total for this position (otherwise computed from unit price, quantity and VAT)' },
+	{ displayName: 'Description', name: 'description', type: 'string', default: '', description: 'Position description' },
+];
+
+// Pozycje przy CREATE - wszystkie linie są nowe, więc bez ID i bez kasowania.
+// Name oznaczone jako wymagane (przy tworzeniu nazwa pozycji jest obowiązkowa).
+const createPositionValueFields: INodeProperties[] = [
+	{ displayName: 'Name', name: 'name', type: 'string', default: '', required: true, description: 'Position name' },
+	...positionValueFields.slice(1),
+];
+
 const positionsCollection: INodeProperties = {
 	displayName: 'Positions',
 	name: 'positions',
@@ -39,20 +61,30 @@ const positionsCollection: INodeProperties = {
 		{
 			displayName: 'Position',
 			name: 'position',
+			values: createPositionValueFields,
+		},
+	],
+};
+
+// Pozycje przy UPDATE - Fakturownia scala je z istniejącymi (nie zastępuje listy):
+// brak ID = nowa linia, ID = modyfikacja tej linii, ID + Delete = usunięcie.
+const positionsUpdateCollection: INodeProperties = {
+	displayName: 'Positions',
+	name: 'positions',
+	type: 'fixedCollection',
+	typeOptions: { multipleValues: true },
+	placeholder: 'Add Position',
+	default: {},
+	description:
+		'Add, modify, or delete line items. This MERGES with the invoice\'s existing positions — it does not replace them. A row with no Position ID adds a new line; a row with a Position ID modifies that line; tick Delete This Line (with the ID) to remove it. Lines you do not list stay unchanged.',
+	options: [
+		{
+			displayName: 'Position',
+			name: 'position',
 			values: [
-				{ displayName: 'Name', name: 'name', type: 'string', default: '', required: true, description: 'Position name' },
-				{ displayName: 'Quantity', name: 'quantity', type: 'number', default: 1, description: 'Quantity' },
-				{ displayName: 'Unit Price Net', name: 'price_net', type: 'number', default: 0, description: 'Net price per unit (totals are computed by the server when not given)' },
-				{
-					displayName: 'VAT Rate', name: 'tax', type: 'options', default: '23', required: true,
-					options: [
-						{ name: '23%', value: '23' }, { name: '8%', value: '8' },
-						{ name: '5%', value: '5' }, { name: '0%', value: '0' },
-					],
-					description: 'VAT rate',
-				},
-				{ displayName: 'Total Price Gross', name: 'total_price_gross', type: 'number', default: 0, description: 'Override the gross total for this position (otherwise computed from unit price, quantity and VAT)' },
-				{ displayName: 'Description', name: 'description', type: 'string', default: '', description: 'Position description' },
+				{ displayName: 'Position ID', name: 'id', type: 'number', default: 0, description: 'Leave at 0 to ADD a new line. Set to an existing line\'s ID to modify or delete it (find IDs via Get → positions[].id)' },
+				...positionValueFields,
+				{ displayName: 'Delete This Line', name: '_destroy', type: 'boolean', default: false, description: 'Remove this line from the invoice. Requires a Position ID' },
 			],
 		},
 	],
@@ -248,6 +280,37 @@ export const invoiceFields: INodeProperties[] = [
 		displayOptions: { show: { operation: ['create'], buyerMode: ['inline'] } },
 		description: 'Buyer (customer) name. Add NIP/address under Additional Fields.',
 	},
+	// Dates: required server-side by fakto.app (validateInvoiceData), so surfaced up-front.
+	{
+		displayName: 'Sell Date',
+		name: 'sell_date',
+		type: 'string',
+		required: true,
+		default: '',
+		placeholder: '2024-01-15',
+		displayOptions: { show: { operation: ['create'] } },
+		description: 'Sale date (YYYY-MM-DD)',
+	},
+	{
+		displayName: 'Issue Date',
+		name: 'issue_date',
+		type: 'string',
+		required: true,
+		default: '',
+		placeholder: '2024-01-15',
+		displayOptions: { show: { operation: ['create'] } },
+		description: 'Issue date (YYYY-MM-DD)',
+	},
+	{
+		displayName: 'Payment To',
+		name: 'payment_to',
+		type: 'string',
+		required: true,
+		default: '',
+		placeholder: '2024-01-29',
+		displayOptions: { show: { operation: ['create'] } },
+		description: 'Payment due date (YYYY-MM-DD)',
+	},
 	// Positions: at least one line item is required.
 	{
 		...positionsCollection,
@@ -264,7 +327,6 @@ export const invoiceFields: INodeProperties[] = [
 		default: {},
 		displayOptions: { show: { operation: ['create'] } },
 		options: [
-			...dateOptions,
 			...docOptions,
 			...buyerExtraOptions,
 			...sellerOptions,
@@ -272,10 +334,8 @@ export const invoiceFields: INodeProperties[] = [
 	},
 	// === UPDATE: ID + optional changes ===
 	{
-		...positionsCollection,
-		default: {},
+		...positionsUpdateCollection,
 		displayOptions: { show: { operation: ['update'] } },
-		description: 'Replace/add line items (optional). Include a position ID to update an existing line.',
 	},
 	{
 		displayName: 'Update Fields',

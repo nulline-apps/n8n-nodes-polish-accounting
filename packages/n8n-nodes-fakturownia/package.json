@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-faktoapp-fakturownia",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "n8n community node for Fakturownia Polish invoicing software via MCP server",
   "keywords": [
     "n8n-community-node-package"
@@ -21,7 +21,8 @@
     "n8nNodesApiVersion": 1,
     "credentials": [
       "dist/credentials/FakturowniaApi.credentials.js",
-      "dist/credentials/FakturowniaBearerApi.credentials.js"
+      "dist/credentials/FakturowniaBearerApi.credentials.js",
+      "dist/credentials/FakturowniaDirectApi.credentials.js"
     ],
     "nodes": [
       "dist/nodes/Fakturownia/Fakturownia.node.js",
