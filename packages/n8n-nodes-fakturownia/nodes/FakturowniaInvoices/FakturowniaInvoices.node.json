@@ -1,0 +1,22 @@
+{
+	"node": "n8n-nodes-faktoapp-fakturownia.fakturowniaInvoices",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Finance & Accounting"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/nulline-apps/n8n-nodes-polish-accounting/tree/main/packages/n8n-nodes-fakturownia"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/nulline-apps/n8n-nodes-polish-accounting/tree/main/packages/n8n-nodes-fakturownia"
+			}
+		]
+	},
+	"alias": ["fakturownia", "invoice", "faktura", "invoicing", "bearer"],
+	"subcategories": {
+		"Finance & Accounting": ["Invoicing"]
+	}
+}

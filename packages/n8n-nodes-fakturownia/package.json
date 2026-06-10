@@ -20,10 +20,12 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/FakturowniaApi.credentials.js"
+      "dist/credentials/FakturowniaApi.credentials.js",
+      "dist/credentials/FakturowniaBearerApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/Fakturownia/Fakturownia.node.js"
+      "dist/nodes/Fakturownia/Fakturownia.node.js",
+      "dist/nodes/FakturowniaInvoices/FakturowniaInvoices.node.js"
     ]
   },
   "scripts": {

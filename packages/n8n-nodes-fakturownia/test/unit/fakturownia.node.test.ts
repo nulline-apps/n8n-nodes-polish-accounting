@@ -21,7 +21,7 @@ describe('Fakturownia Node', () => {
 
 	describe('description', () => {
 		it('should have correct basic metadata', () => {
-			expect(node.description.displayName).toBe('Fakturownia');
+			expect(node.description.displayName).toBe('Fakturownia MCP');
 			expect(node.description.name).toBe('fakturownia');
 			expect(node.description.version).toBe(1);
 			expect(node.description.group).toContain('transform');

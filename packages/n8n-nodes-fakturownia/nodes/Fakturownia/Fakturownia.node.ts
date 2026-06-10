@@ -68,14 +68,14 @@ export const TOOL_MAP: Record<string, Record<string, string>> = {
 
 export class Fakturownia implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Fakturownia',
+		displayName: 'Fakturownia MCP',
 		name: 'fakturownia',
 		icon: 'file:fakturownia.svg',
 		group: ['transform'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description: 'Interact with Fakturownia Polish invoicing software via MCP server',
-		defaults: { name: 'Fakturownia' },
+		defaults: { name: 'Fakturownia MCP' },
 		usableAsTool: true,
 		inputs: ['main'],
 		outputs: ['main'],
