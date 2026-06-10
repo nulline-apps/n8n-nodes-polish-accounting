@@ -48,6 +48,32 @@ describe('FakturowniaInvoices Node', () => {
 		it('should not have a resource selector', () => {
 			expect(getProp(node, 'resource')).toBeUndefined();
 		});
+
+		it('should surface required create fields up-front (buyer + positions)', () => {
+			const buyerMode = getProp(node, 'buyerMode');
+			expect(buyerMode.default).toBe('clientId');
+			expect(buyerMode.displayOptions?.show?.operation).toEqual(['create']);
+
+			const buyerClientId = node.description.properties.find(
+				(p) => p.name === 'buyerClientId',
+			) as any;
+			expect(buyerClientId.required).toBe(true);
+			expect(buyerClientId.displayOptions?.show?.buyerMode).toEqual(['clientId']);
+
+			const positionsForCreate = node.description.properties.find(
+				(p) => p.name === 'positions' && p.displayOptions?.show?.operation?.includes('create'),
+			) as any;
+			expect(positionsForCreate.required).toBe(true);
+		});
+
+		it('should not force dates as required top-level create fields', () => {
+			for (const dateField of ['sell_date', 'issue_date', 'payment_to']) {
+				const topLevel = node.description.properties.find(
+					(p) => p.name === dateField && p.displayOptions?.show?.operation?.includes('create'),
+				);
+				expect(topLevel).toBeUndefined();
+			}
+		});
 	});
 
 	describe('OPERATION_TO_ACTION', () => {

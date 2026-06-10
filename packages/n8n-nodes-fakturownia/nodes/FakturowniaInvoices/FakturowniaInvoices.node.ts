@@ -128,12 +128,13 @@ function buildArgs(this: IExecuteFunctions, operation: string, i: number): IData
 			return { limit: safeGetParam(this, 'limit', i, 50), ...cleanObj(additional) };
 		case 'create': {
 			const positions = buildPositions.call(this, i);
-			const base: IDataObject = {
-				sell_date: this.getNodeParameter('sell_date', i),
-				issue_date: this.getNodeParameter('issue_date', i),
-				payment_to: this.getNodeParameter('payment_to', i),
-				...cleanObj(additional),
-			};
+			const buyerMode = this.getNodeParameter('buyerMode', i) as string;
+			const base: IDataObject = { ...cleanObj(additional) };
+			if (buyerMode === 'inline') {
+				base.buyer_name = this.getNodeParameter('buyerName', i);
+			} else {
+				base.client_id = this.getNodeParameter('buyerClientId', i);
+			}
 			if (positions.length) base.positions = positions;
 			return { ...base, ...buildRawOverride.call(this, i) };
 		}

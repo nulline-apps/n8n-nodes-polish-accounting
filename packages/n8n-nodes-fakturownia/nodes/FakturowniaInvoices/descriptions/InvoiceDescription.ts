@@ -25,40 +25,49 @@ export const invoiceOperations: INodeProperties[] = [
 ];
 
 // Wspólne pozycje faktury (fixedCollection) - używane przez create i update.
+// Model danych dopasowany do najbardziej naturalnego wprowadzania: nazwa + ilość +
+// cena jednostkowa netto + VAT. Serwer MCP sam policzy total_price_net/gross,
+// jeśli nie podasz ich jawnie.
 const positionsCollection: INodeProperties = {
 	displayName: 'Positions',
 	name: 'positions',
 	type: 'fixedCollection',
 	typeOptions: { multipleValues: true },
 	placeholder: 'Add Position',
-	default: {},
+	default: { position: [{ name: '', quantity: 1, price_net: 0, tax: '23' }] },
 	options: [
 		{
 			displayName: 'Position',
 			name: 'position',
 			values: [
-				{ displayName: 'Name', name: 'name', type: 'string', default: '', description: 'Position name' },
+				{ displayName: 'Name', name: 'name', type: 'string', default: '', required: true, description: 'Position name' },
 				{ displayName: 'Quantity', name: 'quantity', type: 'number', default: 1, description: 'Quantity' },
+				{ displayName: 'Unit Price Net', name: 'price_net', type: 'number', default: 0, description: 'Net price per unit (totals are computed by the server when not given)' },
 				{
-					displayName: 'Tax (VAT %)', name: 'tax', type: 'options', default: '23',
+					displayName: 'VAT Rate', name: 'tax', type: 'options', default: '23', required: true,
 					options: [
 						{ name: '23%', value: '23' }, { name: '8%', value: '8' },
 						{ name: '5%', value: '5' }, { name: '0%', value: '0' },
 					],
 					description: 'VAT rate',
 				},
-				{ displayName: 'Unit Price Net', name: 'price_net', type: 'number', default: 0, description: 'Unit net price' },
-				{ displayName: 'Unit Price Gross', name: 'price_gross', type: 'number', default: 0, description: 'Unit gross price' },
-				{ displayName: 'Total Price Net', name: 'total_price_net', type: 'number', default: 0, description: 'Total net price for the position' },
-				{ displayName: 'Total Price Gross', name: 'total_price_gross', type: 'number', default: 0, description: 'Total gross price for the position (required by API)' },
+				{ displayName: 'Total Price Gross', name: 'total_price_gross', type: 'number', default: 0, description: 'Override the gross total for this position (otherwise computed from unit price, quantity and VAT)' },
 				{ displayName: 'Description', name: 'description', type: 'string', default: '', description: 'Position description' },
 			],
 		},
 	],
 };
 
-// Opcjonalne pola nagłówka faktury (create/update) - kupiec/sprzedawca, typ, waluta itd.
-const invoiceHeaderOptions: INodeProperties['options'] = [
+// Opcjonalne pola dat (create/update). API Fakturownia auto-uzupełnia je dzisiejszą datą,
+// dlatego nie są wymagane.
+const dateOptions: INodeProperties['options'] = [
+	{ displayName: 'Sell Date', name: 'sell_date', type: 'string', default: '', placeholder: '2024-01-15', description: 'Sale date (YYYY-MM-DD). Defaults to today if empty.' },
+	{ displayName: 'Issue Date', name: 'issue_date', type: 'string', default: '', placeholder: '2024-01-15', description: 'Issue date (YYYY-MM-DD). Defaults to today if empty.' },
+	{ displayName: 'Payment To', name: 'payment_to', type: 'string', default: '', placeholder: '2024-01-29', description: 'Payment due date (YYYY-MM-DD). Computed by Fakturownia if empty.' },
+];
+
+// Opcjonalne pola nagłówka dokumentu.
+const docOptions: INodeProperties['options'] = [
 	{
 		displayName: 'Income', name: 'income', type: 'options', default: '1',
 		options: [{ name: 'Sales (Income)', value: '1' }, { name: 'Cost', value: '0' }],
@@ -75,24 +84,31 @@ const invoiceHeaderOptions: INodeProperties['options'] = [
 		],
 		description: 'Document type. For cost invoices use VAT + income = Cost (not Kind = Cost)',
 	},
-	{ displayName: 'Client ID', name: 'client_id', type: 'number', default: 0, description: 'Fakturownia contractor ID (alternative to buyer_*/seller_* fields)' },
-	{ displayName: 'Department ID', name: 'department_id', type: 'number', default: 0, description: 'Fakturownia department ID (alternative to seller_*/buyer_* fields)' },
+	{ displayName: 'Department ID', name: 'department_id', type: 'number', default: 0, description: 'Fakturownia department (seller) ID' },
+	{ displayName: 'Currency', name: 'currency', type: 'string', default: 'PLN', description: 'Currency (default PLN)' },
+	{ displayName: 'Payment Type', name: 'payment_type', type: 'string', default: '', description: 'transfer, cash, card, check, compensation' },
+	{ displayName: 'Description', name: 'description', type: 'string', default: '', description: 'Invoice notes/description' },
+	{ displayName: 'Description Footer', name: 'description_footer', type: 'string', default: '', description: 'Invoice footer text' },
+];
+
+// Dodatkowe dane nabywcy (gdy nie używasz istniejącego klienta / chcesz nadpisać).
+const buyerExtraOptions: INodeProperties['options'] = [
+	{ displayName: 'Buyer Tax No (NIP)', name: 'buyer_tax_no', type: 'string', default: '' },
+	{ displayName: 'Buyer Email', name: 'buyer_email', type: 'string', default: '' },
+	{ displayName: 'Buyer Post Code', name: 'buyer_post_code', type: 'string', default: '' },
+	{ displayName: 'Buyer City', name: 'buyer_city', type: 'string', default: '' },
+	{ displayName: 'Buyer Street', name: 'buyer_street', type: 'string', default: '' },
+	{ displayName: 'Buyer Country', name: 'buyer_country', type: 'string', default: '' },
+];
+
+// Dane sprzedawcy (zwykle pobierane z konta - nadpisuj tylko gdy trzeba).
+const sellerOptions: INodeProperties['options'] = [
 	{ displayName: 'Seller Name', name: 'seller_name', type: 'string', default: '' },
 	{ displayName: 'Seller Tax No', name: 'seller_tax_no', type: 'string', default: '' },
 	{ displayName: 'Seller Post Code', name: 'seller_post_code', type: 'string', default: '' },
 	{ displayName: 'Seller City', name: 'seller_city', type: 'string', default: '' },
 	{ displayName: 'Seller Street', name: 'seller_street', type: 'string', default: '' },
 	{ displayName: 'Seller Country', name: 'seller_country', type: 'string', default: '' },
-	{ displayName: 'Buyer Name', name: 'buyer_name', type: 'string', default: '' },
-	{ displayName: 'Buyer Tax No', name: 'buyer_tax_no', type: 'string', default: '' },
-	{ displayName: 'Buyer Post Code', name: 'buyer_post_code', type: 'string', default: '' },
-	{ displayName: 'Buyer City', name: 'buyer_city', type: 'string', default: '' },
-	{ displayName: 'Buyer Street', name: 'buyer_street', type: 'string', default: '' },
-	{ displayName: 'Buyer Country', name: 'buyer_country', type: 'string', default: '' },
-	{ displayName: 'Currency', name: 'currency', type: 'string', default: 'PLN', description: 'Currency (default PLN)' },
-	{ displayName: 'Payment Type', name: 'payment_type', type: 'string', default: '', description: 'transfer, cash, card, check, compensation' },
-	{ displayName: 'Description', name: 'description', type: 'string', default: '', description: 'Invoice notes/description' },
-	{ displayName: 'Description Footer', name: 'description_footer', type: 'string', default: '', description: 'Invoice footer text' },
 ];
 
 export const invoiceFields: INodeProperties[] = [
@@ -200,43 +216,46 @@ export const invoiceFields: INodeProperties[] = [
 			{ displayName: 'Offset', name: 'offset', type: 'number', default: 0, description: 'Number of results to skip' },
 		],
 	},
-	// --- Create: required header dates ---
+	// === CREATE: required fields shown up-front ===
+	// Buyer: pick an existing contractor by ID (recommended by Fakturownia) or enter a name inline.
 	{
-		displayName: 'Sell Date',
-		name: 'sell_date',
+		displayName: 'Buyer',
+		name: 'buyerMode',
+		type: 'options',
+		noDataExpression: true,
+		default: 'clientId',
+		displayOptions: { show: { operation: ['create'] } },
+		options: [
+			{ name: 'Existing Client (by ID)', value: 'clientId', description: 'Reference a contractor already in Fakturownia (recommended)' },
+			{ name: 'New Buyer (by name)', value: 'inline', description: 'Provide buyer name directly; Fakturownia matches or creates the contractor' },
+		],
+	},
+	{
+		displayName: 'Client ID',
+		name: 'buyerClientId',
+		type: 'number',
+		required: true,
+		default: 0,
+		displayOptions: { show: { operation: ['create'], buyerMode: ['clientId'] } },
+		description: 'Fakturownia contractor ID for the buyer',
+	},
+	{
+		displayName: 'Buyer Name',
+		name: 'buyerName',
 		type: 'string',
 		required: true,
 		default: '',
-		placeholder: '2024-01-15',
-		displayOptions: { show: { operation: ['create'] } },
-		description: 'Sale date (YYYY-MM-DD)',
+		displayOptions: { show: { operation: ['create'], buyerMode: ['inline'] } },
+		description: 'Buyer (customer) name. Add NIP/address under Additional Fields.',
 	},
-	{
-		displayName: 'Issue Date',
-		name: 'issue_date',
-		type: 'string',
-		required: true,
-		default: '',
-		placeholder: '2024-01-15',
-		displayOptions: { show: { operation: ['create'] } },
-		description: 'Issue date (YYYY-MM-DD)',
-	},
-	{
-		displayName: 'Payment To',
-		name: 'payment_to',
-		type: 'string',
-		required: true,
-		default: '',
-		placeholder: '2024-01-29',
-		displayOptions: { show: { operation: ['create'] } },
-		description: 'Payment due date (YYYY-MM-DD)',
-	},
-	// --- Create/Update: positions ---
+	// Positions: at least one line item is required.
 	{
 		...positionsCollection,
-		displayOptions: { show: { operation: ['create', 'update'] } },
+		required: true,
+		displayOptions: { show: { operation: ['create'] } },
+		description: 'Invoice line items (at least one required)',
 	},
-	// --- Create: optional header fields ---
+	// Create: everything else is optional.
 	{
 		displayName: 'Additional Fields',
 		name: 'additionalFields',
@@ -244,9 +263,20 @@ export const invoiceFields: INodeProperties[] = [
 		placeholder: 'Add Field',
 		default: {},
 		displayOptions: { show: { operation: ['create'] } },
-		options: invoiceHeaderOptions,
+		options: [
+			...dateOptions,
+			...docOptions,
+			...buyerExtraOptions,
+			...sellerOptions,
+		],
 	},
-	// --- Update: fields to change (all optional) ---
+	// === UPDATE: ID + optional changes ===
+	{
+		...positionsCollection,
+		default: {},
+		displayOptions: { show: { operation: ['update'] } },
+		description: 'Replace/add line items (optional). Include a position ID to update an existing line.',
+	},
 	{
 		displayName: 'Update Fields',
 		name: 'additionalFields',
@@ -255,10 +285,12 @@ export const invoiceFields: INodeProperties[] = [
 		default: {},
 		displayOptions: { show: { operation: ['update'] } },
 		options: [
-			{ displayName: 'Sell Date', name: 'sell_date', type: 'string', default: '', placeholder: '2024-01-15', description: 'Sale date (YYYY-MM-DD)' },
-			{ displayName: 'Issue Date', name: 'issue_date', type: 'string', default: '', placeholder: '2024-01-15', description: 'Issue date (YYYY-MM-DD)' },
-			{ displayName: 'Payment To', name: 'payment_to', type: 'string', default: '', placeholder: '2024-01-29', description: 'Payment due date (YYYY-MM-DD)' },
-			...invoiceHeaderOptions,
+			...dateOptions,
+			...docOptions,
+			{ displayName: 'Client ID', name: 'client_id', type: 'number', default: 0, description: 'Buyer contractor ID' },
+			{ displayName: 'Buyer Name', name: 'buyer_name', type: 'string', default: '' },
+			...buyerExtraOptions,
+			...sellerOptions,
 		],
 	},
 	// --- Escape hatch: raw JSON merged over built args (create/update) ---
